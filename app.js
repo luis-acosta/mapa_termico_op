@@ -35,7 +35,7 @@ let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const fmt=(n,d=0)=>n.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
 
-function init(){renderHotspots();populateModels();selectSource('F1');renderScores();renderPortfolio();bindEvents();}
+function init(){renderHotspots();populateModels();selectSource('F1');$('#point-control').hidden=true;renderScores();renderPortfolio();bindEvents();}
 function renderHotspots(){
  const box=$('#hotspots'); box.innerHTML='';
  [...sources.map(v=>({...v,kind:'source'})),...demands.map(v=>({...v,kind:'demand'}))].forEach(item=>{
@@ -48,10 +48,15 @@ function selectSource(id){
  selectedSource=sources.find(s=>s.id===id)||sources[0];
  $$('.hotspot').forEach(h=>h.classList.toggle('selected',h.dataset.id===id));
  $('#source-id').textContent=`FUENTE ${selectedSource.id}`;$('#source-name').textContent=selectedSource.name;$('#source-location').textContent=selectedSource.location;
- $('#source-temp').textContent=selectedSource.temp;$('#source-power').textContent=`${selectedSource.power} MWt`;$('#source-continuity').textContent=selectedSource.continuity;$('#source-risk').textContent=selectedSource.risk;
+ $('#source-temp').textContent=selectedSource.temp;$('#source-power').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;$('#source-continuity').textContent=selectedSource.continuity;$('#source-risk').textContent=selectedSource.risk;
  const valid=demands.filter(d=>compat[id].includes(d.id)); const ds=$('#demand-select');ds.innerHTML=valid.map(d=>`<option value="${d.id}">${d.id} · ${d.name} (${d.power} MW)</option>`).join('');
- $('#technology-select').innerHTML=techs[id].map(t=>`<option>${t}</option>`).join('');updateAll();
+ $('#technology-select').innerHTML=techs[id].map(t=>`<option>${t}</option>`).join('');showPointControl();updateAll();
 }
+function showPointControl(){
+ const control=$('#point-control');control.hidden=false;control.style.left=`clamp(155px, ${selectedSource.x}%, calc(100% - 155px))`;control.style.top=`clamp(160px, ${selectedSource.y}%, calc(100% - 125px))`;
+ $('#point-control-id').textContent=`FUENTE ${selectedSource.id}`;$('#point-control-name').textContent=selectedSource.name;$('#point-power').value=selectedSource.power;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;
+}
+function updateSourcePower(value){selectedSource.power=+value;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;$('#source-power').textContent=$('#point-power-value').textContent;updateAll()}
 function selectDemand(id){
  const compatible=sources.filter(s=>compat[s.id].includes(id));if(!compatible.some(s=>s.id===selectedSource.id))selectSource(compatible[0].id);
  $('#demand-select').value=id;updateAll();
@@ -101,5 +106,6 @@ function bindEvents(){
  ['demand-select','technology-select','model-select','efficiency','hours','energy-cost'].forEach(id=>$('#'+id).addEventListener('input',updateAll));
  $$('.segmented button').forEach(b=>b.onclick=()=>{scenario=b.dataset.scenario;$$('.segmented button').forEach(x=>x.classList.toggle('active',x===b));const s=scenarioFactors[scenario];$('#efficiency').value=s.eff*100;$('#hours').value=s.hours;$('#energy-cost').value=s.cost;updateAll()});
  $('#add-portfolio').onclick=addCurrent;$('#export-card').onclick=exportCard;$('#close-selection').onclick=()=>document.querySelector('.hero-map').scrollIntoView({behavior:'smooth'});
+ $('#point-power').addEventListener('input',e=>updateSourcePower(e.target.value));$('#point-control-close').onclick=()=>$('#point-control').hidden=true;
 }
 document.addEventListener('DOMContentLoaded',init);
