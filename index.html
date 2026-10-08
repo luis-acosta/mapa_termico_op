@@ -90,11 +90,11 @@
       <section class="results">
         <div class="section-heading">
           <div><p class="eyebrow dark">RESULTADO DE LA OPORTUNIDAD</p><h2 id="opportunity-title">Vapor LP → Agua helada</h2></div>
-          <div id="priority-pill" class="priority-pill high"><span></span> PRIORIDAD MUY ALTA · <b>4.5</b></div>
+          <div class="result-actions"><div class="unit-toggle" aria-label="Unidad de energía"><button data-unit="MWh">MWh</button><button class="active" data-unit="PJ">PJ</button></div><div id="priority-pill" class="priority-pill high"><span></span> PRIORIDAD MUY ALTA · <b>4.5</b></div></div>
         </div>
         <div class="kpi-grid">
           <article class="kpi"><span>POTENCIA ÚTIL</span><strong id="useful-power">7,2</strong><b>MW</b><small>calor valorizado</small></article>
-          <article class="kpi accent"><span>ENERGÍA ANUAL</span><strong id="annual-energy">57.600</strong><b>MWh</b><small>potencial recuperable</small></article>
+          <article class="kpi accent"><span>ENERGÍA TÉRMICA ANUAL</span><strong id="annual-energy">0,207</strong><b id="annual-energy-unit">PJ</b><small id="annual-energy-note">potencial recuperable · 57.600 MWh</small></article>
           <article class="kpi"><span>AHORRO ANUAL</span><strong id="annual-savings">$3,74 M</strong><b>USD</b><small>energía evitada</small></article>
           <article class="kpi"><span>PAYBACK</span><strong id="payback">2,8</strong><b>años</b><small id="capex-label">CAPEX estimado $10,5 M</small></article>
           <article class="kpi green"><span>CO₂ EVITADO</span><strong id="co2">11.520</strong><b>t/año</b><small>factor demo 0,2 t/MWh</small></article>
@@ -127,12 +127,12 @@
     <section id="portafolio" class="view dashboard-view">
       <div class="dashboard-header">
         <div><p class="eyebrow">PORTAFOLIO ESTRATÉGICO</p><h1>Del calor residual<br><em>a proyectos accionables.</em></h1></div>
-        <p>Vista consolidada de oportunidades precargadas y escenarios creados durante la sesión.</p>
+        <div class="dashboard-intro"><p>Vista consolidada de oportunidades precargadas y escenarios creados durante la sesión.</p><div class="unit-toggle light" aria-label="Unidad de energía del portafolio"><button data-unit="MWh">MWh</button><button class="active" data-unit="PJ">PJ</button></div></div>
       </div>
       <div class="portfolio-content">
         <div class="portfolio-kpis">
           <article><span>OPORTUNIDADES</span><b id="pf-count">6</b><small>evaluadas</small></article>
-          <article><span>POTENCIA IDENTIFICADA</span><b id="pf-power">66</b><small>MWt</small></article>
+          <article><span>ENERGÍA TÉRMICA ANUAL</span><b id="pf-energy">1,90</b><small id="pf-energy-unit">PJ/año</small></article>
           <article><span>VALOR POTENCIAL</span><b id="pf-value">$13,2 M</b><small>USD/año</small></article>
           <article><span>PRIORIDAD ALTA</span><b id="pf-priority">4</b><small>candidatos</small></article>
         </div>
@@ -154,7 +154,7 @@
           <article><b>04</b><h3>Estructurar</h3><p>Selección de CAPEX, ESCO, BOOT o energía como servicio según riesgo y retorno.</p></article>
           <article><b>05</b><h3>Priorizar</h3><p>Índice ponderado técnico, económico, operativo y HSE para recomendar pilotos.</p></article>
         </div>
-        <div class="formula-box"><span>CÁLCULO BASE</span><code>Q útil = Q disponible × eficiencia</code><code>E anual = Q útil × horas de operación</code><code>Ahorro = E anual × costo evitado</code><p>Todos los resultados del prototipo son ilustrativos. Una decisión de inversión requiere medición, ingeniería conceptual y validación HSE.</p></div>
+        <div class="formula-box"><span>CÁLCULO BASE</span><code>Q útil = Q disponible × eficiencia</code><code>E anual = Q útil × horas de operación</code><code>1 MWh = 3,6 × 10⁻⁶ PJ</code><p>Todos los resultados del prototipo son ilustrativos. Una decisión de inversión requiere medición, ingeniería conceptual y validación HSE.</p></div>
       </div>
     </section>
   </main>

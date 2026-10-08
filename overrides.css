@@ -55,10 +55,21 @@
 .point-control label b { color: white; }
 .point-control input { width: 100%; margin: 10px 0 4px; accent-color: var(--orange); }
 .point-control small { display: block; color: #8fa2a3; font-size: 8px; line-height: 1.4; }
+.result-actions { display: flex; align-items: center; gap: 10px; }
+.unit-toggle { display: inline-flex; padding: 3px; background: #e4e5df; border: 1px solid #d0d3ce; }
+.unit-toggle button { min-width: 42px; padding: 6px 9px; border: 0; color: #71807d; background: transparent; font: 700 8px "DM Sans", sans-serif; cursor: pointer; }
+.unit-toggle button.active { color: white; background: var(--ink); }
+.unit-toggle.light { align-self: flex-end; background: #203a40; border-color: #496067; }
+.unit-toggle.light button { color: #aebdbd; }
+.unit-toggle.light button.active { color: var(--ink); background: white; }
+.dashboard-intro { display: flex; max-width: 420px; flex-direction: column; align-items: flex-end; gap: 12px; }
+.dashboard-intro p { margin: 0; color: #afbdbe; line-height: 1.6; }
 
 @media (max-width: 600px) {
   .map-heading { top: 28px; width: 78%; }
   .map-heading h1 { font-size: 30px; }
   .map-heading > p:last-child { font-size: 11px; }
   .point-control { width: 230px; }
+  .result-actions { align-items: flex-end; flex-direction: column-reverse; }
+  .dashboard-intro { align-items: flex-start; margin-top: 20px; }
 }

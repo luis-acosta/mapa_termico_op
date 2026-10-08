@@ -31,9 +31,11 @@ const seedPortfolio=[
  {id:'OT-005',source:'Purgas vapor',demand:'Retorno condensado',tech:'Recuperación condensado',model:'Pago por ahorro',power:3,score:4.0,value:.76},
  {id:'OT-006',source:'Corriente caliente',demand:'Corriente fría proceso',tech:'Red intercambiadores',model:'EPC / ESCO',power:10,score:4.2,value:1.74}
 ];
-let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base';
+let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base',energyUnit='PJ';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const fmt=(n,d=0)=>n.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
+const mwhToPj=mwh=>mwh*3.6e-6;
+const energyDisplay=mwh=>energyUnit==='PJ'?{value:fmt(mwhToPj(mwh),3),unit:'PJ'}:{value:fmt(mwh),unit:'MWh'};
 
 function init(){renderHotspots();populateModels();selectSource('F1');$('#point-control').hidden=true;renderScores();renderPortfolio();bindEvents();}
 function renderHotspots(){
@@ -74,7 +76,8 @@ function calculate(){
 function updateAll(){
  const d=currentDemand(),c=calculate(),tech=$('#technology-select').value,model=$('#model-select').value;
  $('#efficiency-value').textContent=`${Math.round(c.eff*100)}%`;$('#hours-value').textContent=`${fmt(c.hours)} h/año`;$('#cost-value').textContent=`${fmt(c.cost)} USD/MWh`;
- $('#opportunity-title').textContent=`${selectedSource.short} → ${d.short}`;$('#useful-power').textContent=fmt(c.useful,1);$('#annual-energy').textContent=fmt(c.energy);$('#annual-savings').textContent=`$${fmt(c.savings/1e6,2)} M`;$('#payback').textContent=fmt(c.payback,1);$('#capex-label').textContent=`CAPEX estimado $${fmt(c.capex/1e6,1)} M`;$('#co2').textContent=fmt(c.co2);
+ const shownEnergy=energyDisplay(c.energy);
+ $('#opportunity-title').textContent=`${selectedSource.short} → ${d.short}`;$('#useful-power').textContent=fmt(c.useful,1);$('#annual-energy').textContent=shownEnergy.value;$('#annual-energy-unit').textContent=shownEnergy.unit;$('#annual-energy-note').textContent=energyUnit==='PJ'?`potencial recuperable · ${fmt(c.energy)} MWh`:`equivale a ${fmt(mwhToPj(c.energy),3)} PJ`;$('#annual-savings').textContent=`$${fmt(c.savings/1e6,2)} M`;$('#payback').textContent=fmt(c.payback,1);$('#capex-label').textContent=`CAPEX estimado $${fmt(c.capex/1e6,1)} M`;$('#co2').textContent=fmt(c.co2);
  $('#flow-source').textContent=selectedSource.short;$('#flow-input').textContent=`${selectedSource.power} MWt`;$('#flow-tech').textContent=tech;$('#flow-demand').textContent=d.short;$('#flow-output').textContent=`${fmt(c.useful,1)} MW útiles`;$('#flow-eff').textContent=`${Math.round(c.eff*100)}% eficiencia`;
  const label=c.score>=4.2?'MUY ALTA':c.score>=3.5?'ALTA':c.score>=2.8?'MEDIA':'BAJA';$('#priority-pill').innerHTML=`<span></span> PRIORIDAD ${label} · <b>${fmt(c.score,1)}</b>`;
  $('#recommendation-text').textContent=recommendation(model,tech,c.payback);renderScores(c.scores);drawFlow();
@@ -84,11 +87,12 @@ function renderScores(scores=calculate().scores){$('#score-bars').innerHTML=Obje
 function drawFlow(){const d=currentDemand(),path=$('#flow-line path');if(!path)return;const x1=selectedSource.x*10,y1=selectedSource.y*5.6,x2=d.x*10,y2=d.y*5.6;path.setAttribute('d',`M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`);$$('.hotspot').forEach(h=>h.classList.toggle('selected',h.dataset.id===selectedSource.id||h.dataset.id===d.id));}
 function addCurrent(){
  const d=currentDemand(),c=calculate(),id=`OT-${String(portfolio.length+1).padStart(3,'0')}`;
- portfolio.push({id,source:selectedSource.short,demand:d.short,tech:$('#technology-select').value,model:$('#model-select').value,power:selectedSource.power,score:+c.score.toFixed(1),value:c.savings/1e6});
+ portfolio.push({id,source:selectedSource.short,demand:d.short,tech:$('#technology-select').value,model:$('#model-select').value,power:selectedSource.power,energy:c.energy,score:+c.score.toFixed(1),value:c.savings/1e6});
  $('#action-message').textContent=`${id} agregado al portafolio`;renderPortfolio();setTimeout(()=>$('#action-message').textContent='',3500);
 }
 function renderPortfolio(){
- $('#portfolio-count').textContent=Math.max(0,portfolio.length-seedPortfolio.length);$('#pf-count').textContent=portfolio.length;$('#pf-power').textContent=fmt(portfolio.reduce((a,o)=>a+o.power,0));$('#pf-value').textContent=`$${fmt(portfolio.reduce((a,o)=>a+o.value,0),1)} M`;$('#pf-priority').textContent=portfolio.filter(o=>o.score>=4).length;
+ const portfolioMwh=portfolio.reduce((a,o)=>a+(o.energy??o.power*.6*8000),0),shownEnergy=energyDisplay(portfolioMwh);
+ $('#portfolio-count').textContent=Math.max(0,portfolio.length-seedPortfolio.length);$('#pf-count').textContent=portfolio.length;$('#pf-energy').textContent=shownEnergy.value;$('#pf-energy-unit').textContent=`${shownEnergy.unit}/año`;$('#pf-value').textContent=`$${fmt(portfolio.reduce((a,o)=>a+o.value,0),1)} M`;$('#pf-priority').textContent=portfolio.filter(o=>o.score>=4).length;
  const sorted=[...portfolio].sort((a,b)=>b.score-a.score);$('#ranking-table').innerHTML=`<div class="ranking-row header"><span>RANK</span><span>OPORTUNIDAD</span><span>TECNOLOGÍA</span><span>MWt</span><span>ÍNDICE</span></div>`+sorted.map((o,i)=>`<div class="ranking-row"><span class="rank">${String(i+1).padStart(2,'0')}</span><span><b>${o.id}</b> · ${o.source} → ${o.demand}</span><span>${o.tech}</span><span>${o.power}</span><span class="score">${fmt(o.score,1)}</span></div>`).join('');
  const grouped={};portfolio.forEach(o=>grouped[o.tech]=(grouped[o.tech]||0)+o.power);const max=Math.max(...Object.values(grouped));$('#tech-mix').innerHTML=Object.entries(grouped).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>`<div class="mix-row"><label><span>${k}</span><b>${v} MW</b></label><i><b style="width:${v/max*100}%"></b></i></div>`).join('');renderMatrix();
 }
@@ -107,5 +111,6 @@ function bindEvents(){
  $$('.segmented button').forEach(b=>b.onclick=()=>{scenario=b.dataset.scenario;$$('.segmented button').forEach(x=>x.classList.toggle('active',x===b));const s=scenarioFactors[scenario];$('#efficiency').value=s.eff*100;$('#hours').value=s.hours;$('#energy-cost').value=s.cost;updateAll()});
  $('#add-portfolio').onclick=addCurrent;$('#export-card').onclick=exportCard;$('#close-selection').onclick=()=>document.querySelector('.hero-map').scrollIntoView({behavior:'smooth'});
  $('#point-power').addEventListener('input',e=>updateSourcePower(e.target.value));$('#point-control-close').onclick=()=>$('#point-control').hidden=true;
+ $$('.unit-toggle button').forEach(b=>b.onclick=()=>{energyUnit=b.dataset.unit;$$('.unit-toggle button').forEach(x=>x.classList.toggle('active',x.dataset.unit===energyUnit));updateAll();renderPortfolio()});
 }
 document.addEventListener('DOMContentLoaded',init);
