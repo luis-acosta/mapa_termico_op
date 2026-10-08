@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Prototipo interactivo para priorizar oportunidades de aprovechamiento de calor residual." />
+  <title>Calor Rescatado · Mapa de Oportunidades Térmicas</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2310252b'/%3E%3Cpath d='M20 45c0-12 12-13 12-25 8 7 13 14 12 23-1 8-7 13-14 13-7 0-12-4-12-10 0-4 2-7 5-10-1 4 0 7 3 9-1-8 7-10 6-17-5 9-12 11-12 17Z' fill='%23f26a3d'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="Calor Rescatado, inicio">
+      <span class="brand-mark"><i></i><i></i><i></i></span>
+      <span><b>CALOR</b> RESCATADO<small>MAPA DE OPORTUNIDADES TÉRMICAS</small></span>
+    </a>
+    <nav aria-label="Navegación principal">
+      <button class="nav-link active" data-view="mapa">Mapa térmico</button>
+      <button class="nav-link" data-view="portafolio">Portafolio <span id="portfolio-count" class="count">0</span></button>
+      <button class="nav-link" data-view="metodologia">Metodología</button>
+    </nav>
+    <div class="demo-badge"><span></span> DEMO · DATOS SIMULADOS</div>
+  </header>
+
+  <main>
+    <section id="mapa" class="view active-view">
+      <div class="hero-map">
+        <img src="assets/refineria-aerea.png" alt="Vista aérea ilustrativa de un complejo industrial costero" />
+        <div class="map-shade"></div>
+        <div class="map-heading">
+          <p class="eyebrow">COMPLEJO INDUSTRIAL · CARTAGENA</p>
+          <h1>El calor que se pierde<br><em>puede crear valor.</em></h1>
+          <p>Explore las fuentes térmicas, conecte demandas compatibles y convierta pérdidas invisibles en proyectos financiables.</p>
+        </div>
+        <div class="map-toolbar">
+          <button class="filter active" data-filter="all">Todos <b>13</b></button>
+          <button class="filter" data-filter="source"><span class="dot orange"></span> Fuentes <b>8</b></button>
+          <button class="filter" data-filter="demand"><span class="dot blue"></span> Demandas <b>5</b></button>
+        </div>
+        <div id="hotspots" aria-label="Puntos térmicos interactivos"></div>
+        <svg id="flow-line" class="flow-line" viewBox="0 0 1000 560" preserveAspectRatio="none" aria-hidden="true"><path d=""/></svg>
+        <div class="legend"><span><i class="dot orange"></i>Fuente residual</span><span><i class="dot blue"></i>Demanda energética</span><span><i class="pulse-mini"></i>Seleccione un punto</span></div>
+        <div class="image-note">Imagen ilustrativa generada para el prototipo · La ubicación de activos no representa instalaciones reales</div>
+      </div>
+
+      <section class="workspace">
+        <aside class="source-panel">
+          <div class="panel-topline"><span id="source-id">FUENTE F1</span><button id="close-selection" aria-label="Cerrar selección">×</button></div>
+          <div class="source-icon">♨</div>
+          <p class="label">FUENTE SELECCIONADA</p>
+          <h2 id="source-name">Vapor LP excedente</h2>
+          <p id="source-location" class="muted">Calderas / Utilities</p>
+          <div class="metric-grid">
+            <div><span>Temperatura</span><b id="source-temp">120–180 °C</b></div>
+            <div><span>Potencia</span><b id="source-power">12 MWt</b></div>
+            <div><span>Continuidad</span><b id="source-continuity">Alta</b></div>
+            <div><span>Riesgo HSE</span><b id="source-risk">Medio</b></div>
+          </div>
+          <div class="quality"><span>Calidad del dato</span><b>ESTIMADO</b></div>
+          <p class="tip">Los valores son supuestos de demostración y deben validarse mediante campaña de medición.</p>
+        </aside>
+
+        <div class="configurator">
+          <div class="section-heading">
+            <div><p class="eyebrow dark">CONFIGURADOR DE OPORTUNIDAD</p><h2>Diseñe una ruta de valorización</h2></div>
+            <div class="steps"><span class="done">1</span><i></i><span class="active">2</span><i></i><span>3</span><i></i><span>4</span></div>
+          </div>
+          <div class="selector-grid">
+            <label><span>01 · DEMANDA COMPATIBLE</span><select id="demand-select"></select></label>
+            <label><span>02 · TECNOLOGÍA</span><select id="technology-select"></select></label>
+            <label><span>03 · MODELO DE NEGOCIO</span><select id="model-select"></select></label>
+          </div>
+          <div class="scenario-row">
+            <div><span class="label">ESCENARIO</span><div class="segmented"><button data-scenario="conservative">Conservador</button><button class="active" data-scenario="base">Base</button><button data-scenario="optimistic">Optimista</button></div></div>
+            <label class="range"><span>Eficiencia <b id="efficiency-value">60%</b></span><input id="efficiency" type="range" min="25" max="90" value="60"></label>
+            <label class="range"><span>Operación <b id="hours-value">8.000 h/año</b></span><input id="hours" type="range" min="3000" max="8760" step="100" value="8000"></label>
+            <label class="range"><span>Costo energía <b id="cost-value">65 USD/MWh</b></span><input id="energy-cost" type="range" min="25" max="140" value="65"></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="results">
+        <div class="section-heading">
+          <div><p class="eyebrow dark">RESULTADO DE LA OPORTUNIDAD</p><h2 id="opportunity-title">Vapor LP → Agua helada</h2></div>
+          <div id="priority-pill" class="priority-pill high"><span></span> PRIORIDAD MUY ALTA · <b>4.5</b></div>
+        </div>
+        <div class="kpi-grid">
+          <article class="kpi"><span>POTENCIA ÚTIL</span><strong id="useful-power">7,2</strong><b>MW</b><small>calor valorizado</small></article>
+          <article class="kpi accent"><span>ENERGÍA ANUAL</span><strong id="annual-energy">57.600</strong><b>MWh</b><small>potencial recuperable</small></article>
+          <article class="kpi"><span>AHORRO ANUAL</span><strong id="annual-savings">$3,74 M</strong><b>USD</b><small>energía evitada</small></article>
+          <article class="kpi"><span>PAYBACK</span><strong id="payback">2,8</strong><b>años</b><small id="capex-label">CAPEX estimado $10,5 M</small></article>
+          <article class="kpi green"><span>CO₂ EVITADO</span><strong id="co2">11.520</strong><b>t/año</b><small>factor demo 0,2 t/MWh</small></article>
+        </div>
+        <div class="insight-grid">
+          <article class="flow-card">
+            <div class="card-title"><span>RUTA DE VALORIZACIÓN</span><small>Balance energético</small></div>
+            <div class="energy-flow">
+              <div class="flow-node heat"><i>♨</i><b id="flow-source">Vapor LP</b><span id="flow-input">12 MWt</span></div>
+              <div class="arrow"><span id="flow-eff">60% eficiencia</span></div>
+              <div class="flow-node tech"><i>⌬</i><b id="flow-tech">Chiller absorción</b><span>Conversión</span></div>
+              <div class="arrow cool"></div>
+              <div class="flow-node demand"><i>❄</i><b id="flow-demand">Salas de control</b><span id="flow-output">7,2 MW útiles</span></div>
+            </div>
+            <div class="recommendation"><span>RECOMENDACIÓN</span><p id="recommendation-text">Estructurar piloto BOOT / CaaS con medición de línea base y contrato por desempeño.</p></div>
+          </article>
+          <article class="score-card">
+            <div class="card-title"><span>PERFIL DE DECISIÓN</span><small>Índice ponderado / 5</small></div>
+            <div id="score-bars"></div>
+          </article>
+        </div>
+        <div class="action-row">
+          <button id="add-portfolio" class="primary-btn">+ Agregar al portafolio</button>
+          <button id="export-card" class="secondary-btn">↓ Descargar ficha</button>
+          <span id="action-message" role="status"></span>
+        </div>
+      </section>
+    </section>
+
+    <section id="portafolio" class="view dashboard-view">
+      <div class="dashboard-header">
+        <div><p class="eyebrow">PORTAFOLIO ESTRATÉGICO</p><h1>Del calor residual<br><em>a proyectos accionables.</em></h1></div>
+        <p>Vista consolidada de oportunidades precargadas y escenarios creados durante la sesión.</p>
+      </div>
+      <div class="portfolio-content">
+        <div class="portfolio-kpis">
+          <article><span>OPORTUNIDADES</span><b id="pf-count">6</b><small>evaluadas</small></article>
+          <article><span>POTENCIA IDENTIFICADA</span><b id="pf-power">66</b><small>MWt</small></article>
+          <article><span>VALOR POTENCIAL</span><b id="pf-value">$13,2 M</b><small>USD/año</small></article>
+          <article><span>PRIORIDAD ALTA</span><b id="pf-priority">4</b><small>candidatos</small></article>
+        </div>
+        <div class="portfolio-layout">
+          <article class="ranking-card"><div class="card-title"><span>RANKING DE OPORTUNIDADES</span><small>Ordenado por puntaje</small></div><div id="ranking-table"></div></article>
+          <article class="mix-card"><div class="card-title"><span>PORTAFOLIO POR TECNOLOGÍA</span><small>Potencia estimada</small></div><div id="tech-mix"></div></article>
+        </div>
+        <article class="matrix-card"><div class="card-title"><span>MATRIZ FUENTE × DEMANDA</span><small>Compatibilidad térmica indicativa</small></div><div id="compatibility-matrix"></div></article>
+      </div>
+    </section>
+
+    <section id="metodologia" class="view methodology-view">
+      <div class="method-wrap">
+        <p class="eyebrow dark">METODOLOGÍA AUDITABLE</p><h1>Del hallazgo al piloto,<br><em>con supuestos visibles.</em></h1>
+        <div class="method-steps">
+          <article><b>01</b><h3>Identificar</h3><p>Inventario de fuentes y demandas térmicas por temperatura, potencia, continuidad y ubicación.</p></article>
+          <article><b>02</b><h3>Compatibilizar</h3><p>Cruce de calidad térmica, distancia, disponibilidad y tecnología aplicable.</p></article>
+          <article><b>03</b><h3>Cuantificar</h3><p>Potencia útil, energía anual, ahorro, CAPEX indicativo y emisiones evitadas.</p></article>
+          <article><b>04</b><h3>Estructurar</h3><p>Selección de CAPEX, ESCO, BOOT o energía como servicio según riesgo y retorno.</p></article>
+          <article><b>05</b><h3>Priorizar</h3><p>Índice ponderado técnico, económico, operativo y HSE para recomendar pilotos.</p></article>
+        </div>
+        <div class="formula-box"><span>CÁLCULO BASE</span><code>Q útil = Q disponible × eficiencia</code><code>E anual = Q útil × horas de operación</code><code>Ahorro = E anual × costo evitado</code><p>Todos los resultados del prototipo son ilustrativos. Una decisión de inversión requiere medición, ingeniería conceptual y validación HSE.</p></div>
+      </div>
+    </section>
+  </main>
+  <footer><span>CALOR RESCATADO</span><p>Prototipo técnico-comercial · Datos simulados · 2026</p></footer>
+  <script src="app.js"></script>
+</body>
+</html>
