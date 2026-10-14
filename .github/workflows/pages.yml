@@ -27,6 +27,15 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Configurar mapa satelital
+        env:
+          MAPBOX_PUBLIC_TOKEN: ${{ secrets.MAPBOX_PUBLIC_TOKEN }}
+        run: |
+          if [ -z "$MAPBOX_PUBLIC_TOKEN" ]; then
+            echo "No se configuró MAPBOX_PUBLIC_TOKEN" >&2
+            exit 1
+          fi
+          printf 'window.MAPBOX_PUBLIC_TOKEN = "%s";\n' "$MAPBOX_PUBLIC_TOKEN" > config.js
       - name: Preparar sitio
         uses: actions/upload-pages-artifact@v3
         with:

@@ -3,6 +3,14 @@
   width: 385px;
 }
 
+.mapbox-map { position: absolute; inset: 0; z-index: 0; opacity: 0; transition: opacity .35s ease; }
+.hero-map.map-live .mapbox-map { opacity: 1; }
+.hero-map.map-live > img { opacity: 0; }
+.hero-map > img { transition: opacity .35s ease; }
+.mapboxgl-canvas { position: absolute; inset: 0; }
+.mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right { z-index: 8; }
+.map-mode { position: absolute; right: 4vw; bottom: 46px; z-index: 15; padding: 8px 11px; border: 1px solid #75888b; color: white; background: rgba(10,30,35,.85); font: 700 8px "DM Sans",sans-serif; letter-spacing: .08em; cursor: pointer; }
+
 .map-heading h1 {
   font-size: clamp(28px, 3vw, 44px);
   line-height: 1.02;

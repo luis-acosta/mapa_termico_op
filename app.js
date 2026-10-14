@@ -31,13 +31,27 @@ const seedPortfolio=[
  {id:'OT-005',source:'Purgas vapor',demand:'Retorno condensado',tech:'Recuperación condensado',model:'Pago por ahorro',power:3,score:4.0,value:.76},
  {id:'OT-006',source:'Corriente caliente',demand:'Corriente fría proceso',tech:'Red intercambiadores',model:'EPC / ESCO',power:10,score:4.2,value:1.74}
 ];
-let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base',energyUnit='PJ';
+let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base',energyUnit='PJ',satelliteMap=null,mapMode='illustration';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const fmt=(n,d=0)=>n.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
 const mwhToPj=mwh=>mwh*3.6e-6;
 const energyDisplay=mwh=>energyUnit==='PJ'?{value:fmt(mwhToPj(mwh),3),unit:'PJ'}:{value:fmt(mwh),unit:'MWh'};
 
-function init(){renderHotspots();populateModels();selectSource('F1');$('#point-control').hidden=true;renderScores();renderPortfolio();bindEvents();}
+function init(){renderHotspots();populateModels();selectSource('F1');$('#point-control').hidden=true;renderScores();renderPortfolio();bindEvents();loadMapbox();}
+function demoCoordinate(item){return[-75.510+(item.x-50)*.00034,10.315-(item.y-50)*.00023]}
+function loadMapbox(){
+ const token=window.MAPBOX_PUBLIC_TOKEN;if(!token)return;
+ const css=document.createElement('link');css.rel='stylesheet';css.href='https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css';document.head.appendChild(css);
+ const script=document.createElement('script');script.src='https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js';script.onload=()=>initSatelliteMap(token);script.onerror=()=>console.warn('No fue posible cargar la vista satelital; se mantiene la ilustración.');document.head.appendChild(script);
+}
+function initSatelliteMap(token){
+ mapboxgl.accessToken=token;satelliteMap=new mapboxgl.Map({container:'mapbox-map',style:'mapbox://styles/mapbox/satellite-streets-v12',center:[-75.510,10.315],zoom:14.25,pitch:52,bearing:-18,antialias:true,attributionControl:true});
+ satelliteMap.addControl(new mapboxgl.NavigationControl({showCompass:true}),'bottom-right');
+ satelliteMap.on('load',()=>{mapMode='satellite';$('.hero-map').classList.add('map-live');$('#map-mode').hidden=false;$('#map-mode').textContent='Ver ilustración';$('#image-note').textContent='Vista satelital Mapbox · Hotspots demostrativos, no representan coordenadas operativas reales';positionMapHotspots();drawFlow()});
+ satelliteMap.on('move',()=>{if(mapMode==='satellite'){positionMapHotspots();drawFlow()}});
+}
+function positionMapHotspots(){if(!satelliteMap)return;[...sources,...demands].forEach(item=>{const p=satelliteMap.project(demoCoordinate(item)),el=document.querySelector(`.hotspot[data-id="${item.id}"]`);if(el){el.style.left=`${p.x}px`;el.style.top=`${p.y}px`}})}
+function setMapMode(mode){mapMode=mode;const live=mode==='satellite';$('.hero-map').classList.toggle('map-live',live);$('#map-mode').textContent=live?'Ver ilustración':'Ver satélite';$('#image-note').textContent=live?'Vista satelital Mapbox · Hotspots demostrativos, no representan coordenadas operativas reales':'Imagen ilustrativa generada para el prototipo · La ubicación de activos no representa instalaciones reales';if(live){satelliteMap.resize();positionMapHotspots()}else{[...sources,...demands].forEach(item=>{const el=document.querySelector(`.hotspot[data-id="${item.id}"]`);el.style.left=item.x+'%';el.style.top=item.y+'%'})}drawFlow()}
 function renderHotspots(){
  const box=$('#hotspots'); box.innerHTML='';
  [...sources.map(v=>({...v,kind:'source'})),...demands.map(v=>({...v,kind:'demand'}))].forEach(item=>{
@@ -55,7 +69,7 @@ function selectSource(id){
  $('#technology-select').innerHTML=techs[id].map(t=>`<option>${t}</option>`).join('');showPointControl();updateAll();
 }
 function showPointControl(){
- const control=$('#point-control');control.hidden=false;control.style.left=`clamp(155px, ${selectedSource.x}%, calc(100% - 155px))`;control.style.top=`clamp(160px, ${selectedSource.y}%, calc(100% - 125px))`;
+ const control=$('#point-control'),spot=document.querySelector(`.hotspot[data-id="${selectedSource.id}"]`),hero=$('.hero-map');control.hidden=false;control.style.left=`${Math.max(155,Math.min(hero.clientWidth-155,spot.offsetLeft))}px`;control.style.top=`${Math.max(160,Math.min(hero.clientHeight-125,spot.offsetTop))}px`;
  $('#point-control-id').textContent=`FUENTE ${selectedSource.id}`;$('#point-control-name').textContent=selectedSource.name;$('#point-power').value=selectedSource.power;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;
 }
 function updateSourcePower(value){selectedSource.power=+value;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;$('#source-power').textContent=$('#point-power-value').textContent;updateAll()}
@@ -84,7 +98,7 @@ function updateAll(){
 }
 function recommendation(model,tech,payback){if(model.includes('BOOT')||model.includes('CaaS'))return `Estructurar piloto ${model} para ${tech}, con medición de línea base y contrato por desempeño.`;if(model==='ESCO')return `Validar ahorro con sensórica temporal y estructurar un ESCO con retorno estimado de ${fmt(payback,1)} años.`;return `Avanzar a prefactibilidad de ${tech} y validar CAPEX mediante ingeniería conceptual.`}
 function renderScores(scores=calculate().scores){$('#score-bars').innerHTML=Object.entries(scores).map(([k,v])=>`<div class="score-bar"><span>${k}</span><i><b style="width:${v/5*100}%"></b></i><strong>${fmt(v,1)}</strong></div>`).join('')}
-function drawFlow(){const d=currentDemand(),path=$('#flow-line path');if(!path)return;const x1=selectedSource.x*10,y1=selectedSource.y*5.6,x2=d.x*10,y2=d.y*5.6;path.setAttribute('d',`M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`);$$('.hotspot').forEach(h=>h.classList.toggle('selected',h.dataset.id===selectedSource.id||h.dataset.id===d.id));}
+function drawFlow(){const d=currentDemand(),path=$('#flow-line path'),hero=$('.hero-map');if(!path)return;const a=document.querySelector(`.hotspot[data-id="${selectedSource.id}"]`),b=document.querySelector(`.hotspot[data-id="${d.id}"]`),x1=a.offsetLeft/hero.clientWidth*1000,y1=a.offsetTop/hero.clientHeight*560,x2=b.offsetLeft/hero.clientWidth*1000,y2=b.offsetTop/hero.clientHeight*560;path.setAttribute('d',`M ${x1} ${y1} C ${(x1+x2)/2} ${y1}, ${(x1+x2)/2} ${y2}, ${x2} ${y2}`);$$('.hotspot').forEach(h=>h.classList.toggle('selected',h.dataset.id===selectedSource.id||h.dataset.id===d.id));}
 function addCurrent(){
  const d=currentDemand(),c=calculate(),id=`OT-${String(portfolio.length+1).padStart(3,'0')}`;
  portfolio.push({id,source:selectedSource.short,demand:d.short,tech:$('#technology-select').value,model:$('#model-select').value,power:selectedSource.power,energy:c.energy,score:+c.score.toFixed(1),value:c.savings/1e6});
@@ -111,6 +125,7 @@ function bindEvents(){
  $$('.segmented button').forEach(b=>b.onclick=()=>{scenario=b.dataset.scenario;$$('.segmented button').forEach(x=>x.classList.toggle('active',x===b));const s=scenarioFactors[scenario];$('#efficiency').value=s.eff*100;$('#hours').value=s.hours;$('#energy-cost').value=s.cost;updateAll()});
  $('#add-portfolio').onclick=addCurrent;$('#export-card').onclick=exportCard;$('#close-selection').onclick=()=>document.querySelector('.hero-map').scrollIntoView({behavior:'smooth'});
  $('#point-power').addEventListener('input',e=>updateSourcePower(e.target.value));$('#point-control-close').onclick=()=>$('#point-control').hidden=true;
+ $('#map-mode').onclick=()=>setMapMode(mapMode==='satellite'?'illustration':'satellite');
  $$('.unit-toggle button').forEach(b=>b.onclick=()=>{energyUnit=b.dataset.unit;$$('.unit-toggle button').forEach(x=>x.classList.toggle('active',x.dataset.unit===energyUnit));updateAll();renderPortfolio()});
 }
 document.addEventListener('DOMContentLoaded',init);
