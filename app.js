@@ -47,9 +47,31 @@ function loadMapbox(){
 function initSatelliteMap(token){
  mapboxgl.accessToken=token;satelliteMap=new mapboxgl.Map({container:'mapbox-map',style:'mapbox://styles/mapbox/satellite-streets-v12',center:[-75.510,10.315],zoom:14.25,pitch:52,bearing:-18,antialias:true,attributionControl:true});
  satelliteMap.addControl(new mapboxgl.NavigationControl({showCompass:true}),'bottom-right');
- satelliteMap.on('load',()=>{mapMode='satellite';$('.hero-map').classList.add('map-live');$('#map-mode').hidden=false;$('#map-mode').textContent='Ver ilustración';$('#image-note').textContent='Vista satelital Mapbox · Hotspots demostrativos, no representan coordenadas operativas reales';positionMapHotspots();drawFlow()});
+ satelliteMap.on('load',()=>{mapMode='satellite';$('.hero-map').classList.add('map-live');$('#map-mode').hidden=false;$('#mapbox-demo-tools').hidden=false;$('#map-insight').hidden=false;$('#map-mode').textContent='Ver ilustración';$('#image-note').textContent='Vista satelital Mapbox · Hotspots demostrativos, no representan coordenadas operativas reales';addMapboxDemoLayers();positionMapHotspots();drawFlow();updateMapDistance()});
  satelliteMap.on('move',()=>{if(mapMode==='satellite'){positionMapHotspots();drawFlow()}});
 }
+function thermalGeoJson(){return{type:'FeatureCollection',features:sources.map(s=>({type:'Feature',properties:{id:s.id,name:s.name,power:s.power},geometry:{type:'Point',coordinates:demoCoordinate(s)}}))}}
+function routeGeoJson(){const features=[];sources.forEach(s=>compat[s.id].forEach(did=>{const d=demands.find(x=>x.id===did);features.push({type:'Feature',properties:{source:s.id,demand:d.id},geometry:{type:'LineString',coordinates:[demoCoordinate(s),demoCoordinate(d)]}})}));return{type:'FeatureCollection',features}}
+function addMapboxDemoLayers(){
+ satelliteMap.addSource('thermal-demo',{type:'geojson',data:thermalGeoJson()});
+ satelliteMap.addLayer({id:'thermal-heat',type:'heatmap',source:'thermal-demo',layout:{visibility:'none'},paint:{'heatmap-weight':['interpolate',['linear'],['get','power'],1,0.15,20,1],'heatmap-intensity':1.25,'heatmap-radius':['interpolate',['linear'],['zoom'],12,24,16,58],'heatmap-opacity':.82,'heatmap-color':['interpolate',['linear'],['heatmap-density'],0,'rgba(30,55,64,0)',.2,'#2fb7c5',.45,'#f2cf66',.7,'#f26a3d',1,'#9d1e12']}});
+ satelliteMap.addSource('thermal-routes',{type:'geojson',data:routeGeoJson()});
+ satelliteMap.addLayer({id:'thermal-routes-glow',type:'line',source:'thermal-routes',layout:{visibility:'none'},paint:{'line-color':'#62d7df','line-width':5,'line-opacity':.22}});
+ satelliteMap.addLayer({id:'thermal-routes-line',type:'line',source:'thermal-routes',layout:{visibility:'none'},paint:{'line-color':'#b8fbff','line-width':1.5,'line-opacity':.9,'line-dasharray':[2,2]}});
+ const layers=satelliteMap.getStyle().layers||[],labelLayer=layers.find(l=>l.type==='symbol'&&l.layout&&l.layout['text-field']);
+ if(satelliteMap.getSource('composite'))satelliteMap.addLayer({id:'demo-buildings-3d',source:'composite','source-layer':'building',filter:['==',['get','extrude'],'true'],type:'fill-extrusion',minzoom:14,layout:{visibility:'none'},paint:{'fill-extrusion-color':'#b5c4c3','fill-extrusion-height':['coalesce',['get','height'],8],'fill-extrusion-base':['coalesce',['get','min_height'],0],'fill-extrusion-opacity':.58}},labelLayer&&labelLayer.id);
+}
+function selectMapDemoLayer(mode){
+ if(!satelliteMap||!satelliteMap.isStyleLoaded())return;['thermal-heat','thermal-routes-glow','thermal-routes-line','demo-buildings-3d'].forEach(id=>{if(satelliteMap.getLayer(id))satelliteMap.setLayoutProperty(id,'visibility','none')});
+ $$('#mapbox-demo-tools button').forEach(b=>b.classList.toggle('active',b.dataset.mapLayer===mode));
+ if(mode==='heat'){satelliteMap.setLayoutProperty('thermal-heat','visibility','visible');satelliteMap.easeTo({zoom:13.7,pitch:38,duration:900})}
+ if(mode==='routes'){satelliteMap.setLayoutProperty('thermal-routes-glow','visibility','visible');satelliteMap.setLayoutProperty('thermal-routes-line','visibility','visible');satelliteMap.easeTo({zoom:14.1,pitch:48,duration:900})}
+ if(mode==='3d'){if(satelliteMap.getLayer('demo-buildings-3d'))satelliteMap.setLayoutProperty('demo-buildings-3d','visibility','visible');satelliteMap.easeTo({zoom:15.2,pitch:72,bearing:-32,duration:1200})}
+ if(mode==='satellite')satelliteMap.easeTo({center:[-75.510,10.315],zoom:14.25,pitch:52,bearing:-18,duration:900});
+ if(mode==='tour')startMapTour();
+}
+function startMapTour(){let i=0;const stops=[sources[0],sources[2],sources[3],sources[5]];const visit=()=>{if(i>=stops.length){selectMapDemoLayer('satellite');return}const s=stops[i++];selectSource(s.id);satelliteMap.flyTo({center:demoCoordinate(s),zoom:16,pitch:65,bearing:-20+i*24,duration:1800,essential:true});setTimeout(visit,2500)};visit()}
+function updateMapDistance(){if(!satelliteMap)return;const [a,b]=[demoCoordinate(selectedSource),demoCoordinate(currentDemand())],rad=x=>x*Math.PI/180,dLat=rad(b[1]-a[1]),dLon=rad(b[0]-a[0]),h=Math.sin(dLat/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dLon/2)**2,km=6371*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));$('#map-distance').textContent=km<1?`${Math.round(km*1000)} m`:`${fmt(km,2)} km`}
 function positionMapHotspots(){if(!satelliteMap)return;[...sources,...demands].forEach(item=>{const p=satelliteMap.project(demoCoordinate(item)),el=document.querySelector(`.hotspot[data-id="${item.id}"]`);if(el){el.style.left=`${p.x}px`;el.style.top=`${p.y}px`}})}
 function setMapMode(mode){mapMode=mode;const live=mode==='satellite';$('.hero-map').classList.toggle('map-live',live);$('#map-mode').textContent=live?'Ver ilustración':'Ver satélite';$('#image-note').textContent=live?'Vista satelital Mapbox · Hotspots demostrativos, no representan coordenadas operativas reales':'Imagen ilustrativa generada para el prototipo · La ubicación de activos no representa instalaciones reales';if(live){satelliteMap.resize();positionMapHotspots()}else{[...sources,...demands].forEach(item=>{const el=document.querySelector(`.hotspot[data-id="${item.id}"]`);el.style.left=item.x+'%';el.style.top=item.y+'%'})}drawFlow()}
 function renderHotspots(){
@@ -72,7 +94,7 @@ function showPointControl(){
  const control=$('#point-control'),spot=document.querySelector(`.hotspot[data-id="${selectedSource.id}"]`),hero=$('.hero-map');control.hidden=false;control.style.left=`${Math.max(155,Math.min(hero.clientWidth-155,spot.offsetLeft))}px`;control.style.top=`${Math.max(160,Math.min(hero.clientHeight-125,spot.offsetTop))}px`;
  $('#point-control-id').textContent=`FUENTE ${selectedSource.id}`;$('#point-control-name').textContent=selectedSource.name;$('#point-power').value=selectedSource.power;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;
 }
-function updateSourcePower(value){selectedSource.power=+value;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;$('#source-power').textContent=$('#point-power-value').textContent;updateAll()}
+function updateSourcePower(value){selectedSource.power=+value;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;$('#source-power').textContent=$('#point-power-value').textContent;if(satelliteMap&&satelliteMap.getSource('thermal-demo'))satelliteMap.getSource('thermal-demo').setData(thermalGeoJson());updateAll()}
 function selectDemand(id){
  const compatible=sources.filter(s=>compat[s.id].includes(id));if(!compatible.some(s=>s.id===selectedSource.id))selectSource(compatible[0].id);
  $('#demand-select').value=id;updateAll();
@@ -94,7 +116,7 @@ function updateAll(){
  $('#opportunity-title').textContent=`${selectedSource.short} → ${d.short}`;$('#useful-power').textContent=fmt(c.useful,1);$('#annual-energy').textContent=shownEnergy.value;$('#annual-energy-unit').textContent=shownEnergy.unit;$('#annual-energy-note').textContent=energyUnit==='PJ'?`potencial recuperable · ${fmt(c.energy)} MWh`:`equivale a ${fmt(mwhToPj(c.energy),3)} PJ`;$('#annual-savings').textContent=`$${fmt(c.savings/1e6,2)} M`;$('#payback').textContent=fmt(c.payback,1);$('#capex-label').textContent=`CAPEX estimado $${fmt(c.capex/1e6,1)} M`;$('#co2').textContent=fmt(c.co2);
  $('#flow-source').textContent=selectedSource.short;$('#flow-input').textContent=`${selectedSource.power} MWt`;$('#flow-tech').textContent=tech;$('#flow-demand').textContent=d.short;$('#flow-output').textContent=`${fmt(c.useful,1)} MW útiles`;$('#flow-eff').textContent=`${Math.round(c.eff*100)}% eficiencia`;
  const label=c.score>=4.2?'MUY ALTA':c.score>=3.5?'ALTA':c.score>=2.8?'MEDIA':'BAJA';$('#priority-pill').innerHTML=`<span></span> PRIORIDAD ${label} · <b>${fmt(c.score,1)}</b>`;
- $('#recommendation-text').textContent=recommendation(model,tech,c.payback);renderScores(c.scores);drawFlow();
+ $('#recommendation-text').textContent=recommendation(model,tech,c.payback);renderScores(c.scores);drawFlow();updateMapDistance();
 }
 function recommendation(model,tech,payback){if(model.includes('BOOT')||model.includes('CaaS'))return `Estructurar piloto ${model} para ${tech}, con medición de línea base y contrato por desempeño.`;if(model==='ESCO')return `Validar ahorro con sensórica temporal y estructurar un ESCO con retorno estimado de ${fmt(payback,1)} años.`;return `Avanzar a prefactibilidad de ${tech} y validar CAPEX mediante ingeniería conceptual.`}
 function renderScores(scores=calculate().scores){$('#score-bars').innerHTML=Object.entries(scores).map(([k,v])=>`<div class="score-bar"><span>${k}</span><i><b style="width:${v/5*100}%"></b></i><strong>${fmt(v,1)}</strong></div>`).join('')}
@@ -126,6 +148,7 @@ function bindEvents(){
  $('#add-portfolio').onclick=addCurrent;$('#export-card').onclick=exportCard;$('#close-selection').onclick=()=>document.querySelector('.hero-map').scrollIntoView({behavior:'smooth'});
  $('#point-power').addEventListener('input',e=>updateSourcePower(e.target.value));$('#point-control-close').onclick=()=>$('#point-control').hidden=true;
  $('#map-mode').onclick=()=>setMapMode(mapMode==='satellite'?'illustration':'satellite');
+ $$('#mapbox-demo-tools button').forEach(b=>b.onclick=()=>selectMapDemoLayer(b.dataset.mapLayer));
  $$('.unit-toggle button').forEach(b=>b.onclick=()=>{energyUnit=b.dataset.unit;$$('.unit-toggle button').forEach(x=>x.classList.toggle('active',x.dataset.unit===energyUnit));updateAll();renderPortfolio()});
 }
 document.addEventListener('DOMContentLoaded',init);

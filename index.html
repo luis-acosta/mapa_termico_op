@@ -39,6 +39,15 @@
           <button class="filter" data-filter="source"><span class="dot orange"></span> Fuentes <b>8</b></button>
           <button class="filter" data-filter="demand"><span class="dot blue"></span> Demandas <b>5</b></button>
         </div>
+        <div id="mapbox-demo-tools" class="mapbox-demo-tools" hidden>
+          <span>CAPAS MAPBOX</span>
+          <button class="active" data-map-layer="satellite">Satélite</button>
+          <button data-map-layer="heat">Mapa térmico</button>
+          <button data-map-layer="routes">Conexiones</button>
+          <button data-map-layer="3d">Vista 3D</button>
+          <button data-map-layer="tour">▶ Recorrido</button>
+        </div>
+        <div id="map-insight" class="map-insight" hidden><span>DISTANCIA ESTIMADA</span><b id="map-distance">—</b><small>entre fuente y demanda seleccionadas</small></div>
         <div id="hotspots" aria-label="Puntos térmicos interactivos"></div>
         <div id="point-control" class="point-control" hidden>
           <div class="point-control-head"><span id="point-control-id">FUENTE F1</span><button id="point-control-close" aria-label="Cerrar control">×</button></div>
