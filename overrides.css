@@ -3,17 +3,14 @@
   width: 385px;
 }
 
-.mapbox-map { position: absolute; inset: 0; z-index: 0; opacity: 0; transition: opacity .35s ease; }
-.hero-map.map-live .mapbox-map { opacity: 1; }
-.hero-map.map-live > img { opacity: 0; }
-.hero-map > img { transition: opacity .35s ease; }
+.mapbox-map { position: absolute; inset: 0; z-index: 0; opacity: 1; }
 .mapboxgl-canvas { position: absolute; inset: 0; }
 .mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right { z-index: 8; }
 .map-status { position: absolute; left: 4vw; bottom: 48px; z-index: 16; display: flex; align-items: center; gap: 7px; padding: 7px 10px; color: #c8d4d4; background: rgba(8,27,32,.86); border: 1px solid #496166; font-size: 8px; letter-spacing: .06em; }
 .map-status i { width: 7px; height: 7px; border-radius: 50%; background: #e3b44f; box-shadow: 0 0 0 3px rgba(227,180,79,.15); }
 .map-status.connected i { background: #6fbd7b; box-shadow: 0 0 0 3px rgba(111,189,123,.15); }
 .map-status.error i { background: #e25e49; box-shadow: 0 0 0 3px rgba(226,94,73,.15); }
-.hero-map.map-live #hotspots, .hero-map.map-live #flow-line { display: none !important; }
+.hero-map #hotspots, .hero-map #flow-line { display: none !important; }
 .map-mode { position: absolute; right: 4vw; bottom: 46px; z-index: 15; padding: 8px 11px; border: 1px solid #75888b; color: white; background: rgba(10,30,35,.85); font: 700 8px "DM Sans",sans-serif; letter-spacing: .08em; cursor: pointer; }
 .mapbox-demo-tools { position: absolute; top: 100px; right: 4vw; z-index: 16; display: flex; flex-direction: column; width: 148px; padding: 8px; background: rgba(8,27,32,.9); border: 1px solid #496166; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
 .mapbox-demo-tools[hidden], .map-insight[hidden], .hotmap-legend[hidden] { display: none; }

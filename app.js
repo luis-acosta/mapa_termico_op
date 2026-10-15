@@ -31,7 +31,7 @@ const seedPortfolio=[
  {id:'OT-005',source:'Purgas vapor',demand:'Retorno condensado',tech:'Recuperación condensado',model:'Pago por ahorro',power:3,score:4.0,value:.76},
  {id:'OT-006',source:'Corriente caliente',demand:'Corriente fría proceso',tech:'Red intercambiadores',model:'EPC / ESCO',power:10,score:4.2,value:1.74}
 ];
-let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base',energyUnit='PJ',satelliteMap=null,mapMode='illustration',activeMapLayer='points',tourTimer=null,nativeEventsBound=false;
+let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base',energyUnit='PJ',satelliteMap=null,mapMode='satellite',activeMapLayer='points',tourTimer=null,nativeEventsBound=false;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const fmt=(n,d=0)=>n.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
 const mwhToPj=mwh=>mwh*3.6e-6;
@@ -40,15 +40,15 @@ const energyDisplay=mwh=>energyUnit==='PJ'?{value:fmt(mwhToPj(mwh),3),unit:'PJ'}
 function init(){renderHotspots();populateModels();selectSource('F1');$('#point-control').hidden=true;renderScores();renderPortfolio();bindEvents();loadMapbox();}
 function demoCoordinate(item){return[-75.510+(item.x-50)*.00034,10.315-(item.y-50)*.00023]}
 function loadMapbox(){
- const token=window.MAPBOX_PUBLIC_TOKEN;if(!token)return;
+ const token=window.MAPBOX_PUBLIC_TOKEN;if(!token){setMapStatus('error','Token de Mapbox no disponible');return}
  const css=document.createElement('link');css.rel='stylesheet';css.href='https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css';document.head.appendChild(css);
- const script=document.createElement('script');script.src='https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js';script.onload=()=>initSatelliteMap(token);script.onerror=()=>setMapStatus('error','Mapbox no respondió · usando ilustración');document.head.appendChild(script);
+ const script=document.createElement('script');script.src='https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js';script.onload=()=>initSatelliteMap(token);script.onerror=()=>setMapStatus('error','Mapbox no respondió · revise la conexión');document.head.appendChild(script);
 }
 function setMapStatus(state,message){const el=$('#map-status');el.className=`map-status ${state}`;el.querySelector('span').textContent=message}
 function initSatelliteMap(token){
  mapboxgl.accessToken=token;satelliteMap=new mapboxgl.Map({container:'mapbox-map',style:'mapbox://styles/mapbox/satellite-streets-v12',center:[-75.510,10.315],zoom:14.25,pitch:52,bearing:-18,antialias:true,attributionControl:true});
  satelliteMap.addControl(new mapboxgl.NavigationControl({showCompass:true}),'bottom-right');
- satelliteMap.on('load',()=>{mapMode='satellite';$('.hero-map').classList.add('map-live');$('#map-mode').hidden=false;$('#mapbox-demo-tools').hidden=false;$('#map-insight').hidden=false;$('#map-mode').textContent='Ver ilustración';$('#image-note').textContent='Mapbox V2 · Capas GeoJSON nativas · Coordenadas demostrativas';addMapboxDemoLayers();bindNativeMapEvents();drawFlow();updateMapDistance();setMapStatus('connected','Mapbox conectado · V2')});
+ satelliteMap.on('load',()=>{mapMode='satellite';$('.hero-map').classList.add('map-live');$('#mapbox-demo-tools').hidden=false;$('#map-insight').hidden=false;$('#image-note').textContent='Mapbox V2 · Capas GeoJSON nativas · Coordenadas demostrativas';addMapboxDemoLayers();bindNativeMapEvents();drawFlow();updateMapDistance();setMapStatus('connected','Mapbox conectado · V2')});
  satelliteMap.on('error',event=>{if(!satelliteMap.loaded()&&event?.error?.message)setMapStatus('error','Error de conexión · revise el token')});
 }
 function thermalGeoJson(){return{type:'FeatureCollection',features:sources.map(s=>({type:'Feature',properties:{id:s.id,name:s.name,power:s.power},geometry:{type:'Point',coordinates:demoCoordinate(s)}}))}}
@@ -168,7 +168,6 @@ function bindEvents(){
  $$('.segmented button').forEach(b=>b.onclick=()=>{scenario=b.dataset.scenario;$$('.segmented button').forEach(x=>x.classList.toggle('active',x===b));const s=scenarioFactors[scenario];$('#efficiency').value=s.eff*100;$('#hours').value=s.hours;$('#energy-cost').value=s.cost;updateAll()});
  $('#add-portfolio').onclick=addCurrent;$('#export-card').onclick=exportCard;$('#close-selection').onclick=()=>document.querySelector('.hero-map').scrollIntoView({behavior:'smooth'});
  $('#point-power').addEventListener('input',e=>updateSourcePower(e.target.value));$('#point-control-close').onclick=()=>$('#point-control').hidden=true;
- $('#map-mode').onclick=()=>setMapMode(mapMode==='satellite'?'illustration':'satellite');
  $$('#mapbox-demo-tools button').forEach(b=>b.onclick=()=>selectMapDemoLayer(b.dataset.mapLayer));
  $('#basemap-select').onchange=e=>changeBasemap(e.target.value);
  $$('.unit-toggle button').forEach(b=>b.onclick=()=>{energyUnit=b.dataset.unit;$$('.unit-toggle button').forEach(x=>x.classList.toggle('active',x.dataset.unit===energyUnit));updateAll();renderPortfolio()});
