@@ -31,7 +31,7 @@ const seedPortfolio=[
  {id:'OT-005',source:'Purgas vapor',demand:'Retorno condensado',tech:'Recuperación condensado',model:'Pago por ahorro',power:3,score:4.0,value:.76},
  {id:'OT-006',source:'Corriente caliente',demand:'Corriente fría proceso',tech:'Red intercambiadores',model:'EPC / ESCO',power:10,score:4.2,value:1.74}
 ];
-let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base',energyUnit='PJ',satelliteMap=null,mapMode='illustration';
+let selectedSource=sources[0],portfolio=[...seedPortfolio],scenario='base',energyUnit='PJ',satelliteMap=null,mapMode='illustration',activeMapLayer='points',tourTimer=null;
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const fmt=(n,d=0)=>n.toLocaleString('es-CO',{minimumFractionDigits:d,maximumFractionDigits:d});
 const mwhToPj=mwh=>mwh*3.6e-6;
@@ -52,25 +52,36 @@ function initSatelliteMap(token){
 }
 function thermalGeoJson(){return{type:'FeatureCollection',features:sources.map(s=>({type:'Feature',properties:{id:s.id,name:s.name,power:s.power},geometry:{type:'Point',coordinates:demoCoordinate(s)}}))}}
 function routeGeoJson(){const features=[];sources.forEach(s=>compat[s.id].forEach(did=>{const d=demands.find(x=>x.id===did);features.push({type:'Feature',properties:{source:s.id,demand:d.id},geometry:{type:'LineString',coordinates:[demoCoordinate(s),demoCoordinate(d)]}})}));return{type:'FeatureCollection',features}}
+function sourceTemperature(source){const values=(source.temp.match(/[0-9]+/g)||['35']).map(Number);return values.reduce((a,b)=>a+b,0)/values.length}
+function hotmapGridGeoJson(){
+ const features=[],columns=16,rows=10;
+ for(let row=0;row<rows;row++)for(let col=0;col<columns;col++){
+  const x0=5+col*90/columns,x1=5+(col+1)*90/columns,y0=12+row*76/rows,y1=12+(row+1)*76/rows,cx=(x0+x1)/2,cy=(y0+y1)/2;
+  let temperature=35;sources.forEach(s=>{const distance2=(s.x-cx)**2+(s.y-cy)**2,local=35+(sourceTemperature(s)-35)*Math.exp(-distance2/190);temperature=Math.max(temperature,local)});
+  features.push({type:'Feature',properties:{temperature:+temperature.toFixed(1)},geometry:{type:'Polygon',coordinates:[[demoCoordinate({x:x0,y:y0}),demoCoordinate({x:x1,y:y0}),demoCoordinate({x:x1,y:y1}),demoCoordinate({x:x0,y:y1}),demoCoordinate({x:x0,y:y0})]]}})
+ }return{type:'FeatureCollection',features}
+}
 function addMapboxDemoLayers(){
  satelliteMap.addSource('thermal-demo',{type:'geojson',data:thermalGeoJson()});
- satelliteMap.addLayer({id:'thermal-heat',type:'heatmap',source:'thermal-demo',layout:{visibility:'none'},paint:{'heatmap-weight':['interpolate',['linear'],['get','power'],1,0.15,20,1],'heatmap-intensity':1.25,'heatmap-radius':['interpolate',['linear'],['zoom'],12,24,16,58],'heatmap-opacity':.82,'heatmap-color':['interpolate',['linear'],['heatmap-density'],0,'rgba(30,55,64,0)',.2,'#2fb7c5',.45,'#f2cf66',.7,'#f26a3d',1,'#9d1e12']}});
+ satelliteMap.addSource('thermal-grid',{type:'geojson',data:hotmapGridGeoJson()});
+ satelliteMap.addLayer({id:'thermal-grid-fill',type:'fill',source:'thermal-grid',layout:{visibility:'none'},paint:{'fill-color':['interpolate',['linear'],['get','temperature'],35,'#234a9f',65,'#21b5c5',110,'#e8da52',170,'#f26a3d',300,'#8b1010'],'fill-opacity':.7}});
+ satelliteMap.addLayer({id:'thermal-grid-line',type:'line',source:'thermal-grid',layout:{visibility:'none'},paint:{'line-color':'rgba(255,255,255,.3)','line-width':.55}});
  satelliteMap.addSource('thermal-routes',{type:'geojson',data:routeGeoJson()});
  satelliteMap.addLayer({id:'thermal-routes-glow',type:'line',source:'thermal-routes',layout:{visibility:'none'},paint:{'line-color':'#62d7df','line-width':5,'line-opacity':.22}});
  satelliteMap.addLayer({id:'thermal-routes-line',type:'line',source:'thermal-routes',layout:{visibility:'none'},paint:{'line-color':'#b8fbff','line-width':1.5,'line-opacity':.9,'line-dasharray':[2,2]}});
- const layers=satelliteMap.getStyle().layers||[],labelLayer=layers.find(l=>l.type==='symbol'&&l.layout&&l.layout['text-field']);
- if(satelliteMap.getSource('composite'))satelliteMap.addLayer({id:'demo-buildings-3d',source:'composite','source-layer':'building',filter:['==',['get','extrude'],'true'],type:'fill-extrusion',minzoom:14,layout:{visibility:'none'},paint:{'fill-extrusion-color':'#b5c4c3','fill-extrusion-height':['coalesce',['get','height'],8],'fill-extrusion-base':['coalesce',['get','min_height'],0],'fill-extrusion-opacity':.58}},labelLayer&&labelLayer.id);
 }
 function selectMapDemoLayer(mode){
- if(!satelliteMap||!satelliteMap.isStyleLoaded())return;['thermal-heat','thermal-routes-glow','thermal-routes-line','demo-buildings-3d'].forEach(id=>{if(satelliteMap.getLayer(id))satelliteMap.setLayoutProperty(id,'visibility','none')});
+ if(!satelliteMap||!satelliteMap.isStyleLoaded())return;activeMapLayer=mode;if(tourTimer){clearTimeout(tourTimer);tourTimer=null}['thermal-grid-fill','thermal-grid-line','thermal-routes-glow','thermal-routes-line'].forEach(id=>{if(satelliteMap.getLayer(id))satelliteMap.setLayoutProperty(id,'visibility','none')});
  $$('#mapbox-demo-tools button').forEach(b=>b.classList.toggle('active',b.dataset.mapLayer===mode));
- if(mode==='heat'){satelliteMap.setLayoutProperty('thermal-heat','visibility','visible');satelliteMap.easeTo({zoom:13.7,pitch:38,duration:900})}
- if(mode==='routes'){satelliteMap.setLayoutProperty('thermal-routes-glow','visibility','visible');satelliteMap.setLayoutProperty('thermal-routes-line','visibility','visible');satelliteMap.easeTo({zoom:14.1,pitch:48,duration:900})}
- if(mode==='3d'){if(satelliteMap.getLayer('demo-buildings-3d'))satelliteMap.setLayoutProperty('demo-buildings-3d','visibility','visible');satelliteMap.easeTo({zoom:15.2,pitch:72,bearing:-32,duration:1200})}
- if(mode==='satellite')satelliteMap.easeTo({center:[-75.510,10.315],zoom:14.25,pitch:52,bearing:-18,duration:900});
+ const showPoints=mode!=='heat';$('#hotspots').style.display=showPoints?'block':'none';$('#flow-line').style.display=showPoints?'block':'none';$('#hotmap-legend').hidden=mode!=='heat';
+ if(mode==='heat'){satelliteMap.setLayoutProperty('thermal-grid-fill','visibility','visible');satelliteMap.setLayoutProperty('thermal-grid-line','visibility','visible');satelliteMap.easeTo({center:[-75.510,10.315],zoom:14,pitch:0,bearing:0,duration:900})}
+ if(mode==='routes'){satelliteMap.setLayoutProperty('thermal-routes-glow','visibility','visible');satelliteMap.setLayoutProperty('thermal-routes-line','visibility','visible');satelliteMap.easeTo({zoom:14.1,pitch:38,duration:900})}
+ if(mode==='top')satelliteMap.easeTo({center:[-75.510,10.315],zoom:14.35,pitch:0,bearing:0,duration:1000});
+ if(mode==='points')satelliteMap.easeTo({center:[-75.510,10.315],zoom:14.25,pitch:42,bearing:-18,duration:900});
  if(mode==='tour')startMapTour();
 }
-function startMapTour(){let i=0;const stops=[sources[0],sources[2],sources[3],sources[5]];const visit=()=>{if(i>=stops.length){selectMapDemoLayer('satellite');return}const s=stops[i++];selectSource(s.id);satelliteMap.flyTo({center:demoCoordinate(s),zoom:16,pitch:65,bearing:-20+i*24,duration:1800,essential:true});setTimeout(visit,2500)};visit()}
+function startMapTour(){let i=0,bearing=satelliteMap.getBearing(),stops=[sources[0],sources[2],sources[3],sources[5],sources[6]];const visit=()=>{if(i>=stops.length){i=0;bearing+=90}const s=stops[i++];selectSource(s.id);$('#point-control').hidden=true;bearing+=72;satelliteMap.flyTo({center:demoCoordinate(s),zoom:15.6,pitch:48,bearing,duration:2200,essential:true});tourTimer=setTimeout(visit,2900)};visit()}
+function changeBasemap(style){if(!satelliteMap)return;const keep=activeMapLayer;satelliteMap.once('style.load',()=>{addMapboxDemoLayers();positionMapHotspots();selectMapDemoLayer(keep)});satelliteMap.setStyle(`mapbox://styles/mapbox/${style}`)}
 function updateMapDistance(){if(!satelliteMap)return;const [a,b]=[demoCoordinate(selectedSource),demoCoordinate(currentDemand())],rad=x=>x*Math.PI/180,dLat=rad(b[1]-a[1]),dLon=rad(b[0]-a[0]),h=Math.sin(dLat/2)**2+Math.cos(rad(a[1]))*Math.cos(rad(b[1]))*Math.sin(dLon/2)**2,km=6371*2*Math.atan2(Math.sqrt(h),Math.sqrt(1-h));$('#map-distance').textContent=km<1?`${Math.round(km*1000)} m`:`${fmt(km,2)} km`}
 function positionMapHotspots(){if(!satelliteMap)return;[...sources,...demands].forEach(item=>{const p=satelliteMap.project(demoCoordinate(item)),el=document.querySelector(`.hotspot[data-id="${item.id}"]`);if(el){el.style.left=`${p.x}px`;el.style.top=`${p.y}px`}})}
 function setMapMode(mode){mapMode=mode;const live=mode==='satellite';$('.hero-map').classList.toggle('map-live',live);$('#map-mode').textContent=live?'Ver ilustración':'Ver satélite';$('#image-note').textContent=live?'Vista satelital Mapbox · Hotspots demostrativos, no representan coordenadas operativas reales':'Imagen ilustrativa generada para el prototipo · La ubicación de activos no representa instalaciones reales';if(live){satelliteMap.resize();positionMapHotspots()}else{[...sources,...demands].forEach(item=>{const el=document.querySelector(`.hotspot[data-id="${item.id}"]`);el.style.left=item.x+'%';el.style.top=item.y+'%'})}drawFlow()}
@@ -94,7 +105,7 @@ function showPointControl(){
  const control=$('#point-control'),spot=document.querySelector(`.hotspot[data-id="${selectedSource.id}"]`),hero=$('.hero-map');control.hidden=false;control.style.left=`${Math.max(155,Math.min(hero.clientWidth-155,spot.offsetLeft))}px`;control.style.top=`${Math.max(160,Math.min(hero.clientHeight-125,spot.offsetTop))}px`;
  $('#point-control-id').textContent=`FUENTE ${selectedSource.id}`;$('#point-control-name').textContent=selectedSource.name;$('#point-power').value=selectedSource.power;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;
 }
-function updateSourcePower(value){selectedSource.power=+value;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;$('#source-power').textContent=$('#point-power-value').textContent;if(satelliteMap&&satelliteMap.getSource('thermal-demo'))satelliteMap.getSource('thermal-demo').setData(thermalGeoJson());updateAll()}
+function updateSourcePower(value){selectedSource.power=+value;$('#point-power-value').textContent=`${fmt(selectedSource.power,selectedSource.power%1?1:0)} MWt`;$('#source-power').textContent=$('#point-power-value').textContent;if(satelliteMap&&satelliteMap.getSource('thermal-demo'))satelliteMap.getSource('thermal-demo').setData(thermalGeoJson());if(satelliteMap&&satelliteMap.getSource('thermal-grid'))satelliteMap.getSource('thermal-grid').setData(hotmapGridGeoJson());updateAll()}
 function selectDemand(id){
  const compatible=sources.filter(s=>compat[s.id].includes(id));if(!compatible.some(s=>s.id===selectedSource.id))selectSource(compatible[0].id);
  $('#demand-select').value=id;updateAll();
@@ -149,6 +160,7 @@ function bindEvents(){
  $('#point-power').addEventListener('input',e=>updateSourcePower(e.target.value));$('#point-control-close').onclick=()=>$('#point-control').hidden=true;
  $('#map-mode').onclick=()=>setMapMode(mapMode==='satellite'?'illustration':'satellite');
  $$('#mapbox-demo-tools button').forEach(b=>b.onclick=()=>selectMapDemoLayer(b.dataset.mapLayer));
+ $('#basemap-select').onchange=e=>changeBasemap(e.target.value);
  $$('.unit-toggle button').forEach(b=>b.onclick=()=>{energyUnit=b.dataset.unit;$$('.unit-toggle button').forEach(x=>x.classList.toggle('active',x.dataset.unit===energyUnit));updateAll();renderPortfolio()});
 }
 document.addEventListener('DOMContentLoaded',init);

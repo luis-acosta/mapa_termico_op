@@ -40,13 +40,15 @@
           <button class="filter" data-filter="demand"><span class="dot blue"></span> Demandas <b>5</b></button>
         </div>
         <div id="mapbox-demo-tools" class="mapbox-demo-tools" hidden>
-          <span>CAPAS MAPBOX</span>
-          <button class="active" data-map-layer="satellite">Satélite</button>
-          <button data-map-layer="heat">Mapa térmico</button>
+          <span>DEMOSTRACIÓN MAPBOX</span>
+          <label class="basemap-select">Mapa base<select id="basemap-select"><option value="satellite-streets-v12">Satélite</option><option value="streets-v12">Calles</option><option value="outdoors-v12">Terreno</option><option value="light-v11">Claro</option></select></label>
+          <button class="active" data-map-layer="points">Puntos térmicos</button>
+          <button data-map-layer="heat">HOTMAP matriz</button>
           <button data-map-layer="routes">Conexiones</button>
-          <button data-map-layer="3d">Vista 3D</button>
-          <button data-map-layer="tour">▶ Recorrido</button>
+          <button data-map-layer="top">Vista cenital</button>
+          <button data-map-layer="tour">↻ Recorrido rotatorio</button>
         </div>
+        <div id="hotmap-legend" class="hotmap-legend" hidden><span>Temperatura estimada</span><i></i><div><b>35 °C</b><b>150 °C</b><b>300 °C</b></div></div>
         <div id="map-insight" class="map-insight" hidden><span>DISTANCIA ESTIMADA</span><b id="map-distance">—</b><small>entre fuente y demanda seleccionadas</small></div>
         <div id="hotspots" aria-label="Puntos térmicos interactivos"></div>
         <div id="point-control" class="point-control" hidden>

@@ -10,11 +10,18 @@
 .mapboxgl-canvas { position: absolute; inset: 0; }
 .mapboxgl-ctrl-bottom-left, .mapboxgl-ctrl-bottom-right { z-index: 8; }
 .map-mode { position: absolute; right: 4vw; bottom: 46px; z-index: 15; padding: 8px 11px; border: 1px solid #75888b; color: white; background: rgba(10,30,35,.85); font: 700 8px "DM Sans",sans-serif; letter-spacing: .08em; cursor: pointer; }
-.mapbox-demo-tools { position: absolute; top: 100px; right: 4vw; z-index: 16; display: flex; flex-direction: column; width: 124px; padding: 8px; background: rgba(8,27,32,.9); border: 1px solid #496166; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
-.mapbox-demo-tools[hidden], .map-insight[hidden] { display: none; }
+.mapbox-demo-tools { position: absolute; top: 100px; right: 4vw; z-index: 16; display: flex; flex-direction: column; width: 148px; padding: 8px; background: rgba(8,27,32,.9); border: 1px solid #496166; box-shadow: 0 10px 28px rgba(0,0,0,.28); }
+.mapbox-demo-tools[hidden], .map-insight[hidden], .hotmap-legend[hidden] { display: none; }
 .mapbox-demo-tools > span { padding: 5px 6px 9px; color: #91a6a8; font: 700 7px "DM Sans",sans-serif; letter-spacing: .15em; }
 .mapbox-demo-tools button { padding: 8px 7px; border: 0; border-top: 1px solid #314b50; color: #bed0d1; background: transparent; text-align: left; font: 600 9px "DM Sans",sans-serif; cursor: pointer; }
 .mapbox-demo-tools button:hover, .mapbox-demo-tools button.active { color: white; background: #f26a3d; }
+.basemap-select { padding: 5px 6px 10px; color: #91a6a8; font: 700 7px "DM Sans",sans-serif; letter-spacing: .1em; }
+.basemap-select select { display: block; width: 100%; margin-top: 5px; padding: 6px; border: 1px solid #496166; color: white; background: #18353a; font: 600 9px "DM Sans",sans-serif; }
+.hotmap-legend { position: absolute; left: 50%; bottom: 52px; z-index: 15; width: 240px; padding: 10px 12px; transform: translateX(-50%); color: white; background: rgba(8,27,32,.9); border: 1px solid #496166; }
+.hotmap-legend span { display: block; margin-bottom: 6px; color: #b9c7c8; font-size: 8px; letter-spacing: .1em; }
+.hotmap-legend i { display: block; height: 8px; background: linear-gradient(90deg,#234a9f,#21b5c5,#e8da52,#f26a3d,#8b1010); }
+.hotmap-legend div { display: flex; justify-content: space-between; margin-top: 4px; }
+.hotmap-legend b { font-size: 7px; font-weight: 500; }
 .map-insight { position: absolute; right: 4vw; bottom: 88px; z-index: 15; width: 180px; padding: 12px 14px; color: white; background: rgba(8,27,32,.9); border-left: 3px solid var(--blue); }
 .map-insight span, .map-insight small { display: block; color: #8fa4a6; font-size: 7px; letter-spacing: .1em; }
 .map-insight b { display: block; margin: 4px 0; font: 600 18px "Manrope",sans-serif; }
