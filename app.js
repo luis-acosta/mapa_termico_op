@@ -81,14 +81,14 @@ function addMapboxDemoLayers(){
 }
 function bindNativeMapEvents(){if(nativeEventsBound)return;nativeEventsBound=true;satelliteMap.on('mouseenter','asset-points',()=>satelliteMap.getCanvas().style.cursor='pointer');satelliteMap.on('mouseleave','asset-points',()=>satelliteMap.getCanvas().style.cursor='');satelliteMap.on('click','asset-points',event=>{const feature=event.features?.[0];if(!feature)return;feature.properties.kind==='source'?selectSource(feature.properties.id):selectDemand(feature.properties.id)})}
 function selectMapDemoLayer(mode){
- if(!satelliteMap||!satelliteMap.isStyleLoaded())return;activeMapLayer=mode;if(tourTimer){clearTimeout(tourTimer);tourTimer=null}['thermal-grid-fill','thermal-grid-line','thermal-routes-glow','thermal-routes-line'].forEach(id=>{if(satelliteMap.getLayer(id))satelliteMap.setLayoutProperty(id,'visibility','none')});
+ if(!satelliteMap){setMapStatus('error','Mapbox aún no está disponible');return}if(!satelliteMap.getLayer('asset-points')){setMapStatus('error','Capas de Mapbox cargando…');return}activeMapLayer=mode;if(tourTimer){clearTimeout(tourTimer);tourTimer=null}satelliteMap.resize();['thermal-grid-fill','thermal-grid-line','thermal-routes-glow','thermal-routes-line'].forEach(id=>{if(satelliteMap.getLayer(id))satelliteMap.setLayoutProperty(id,'visibility','none')});
  $$('#mapbox-demo-tools button').forEach(b=>b.classList.toggle('active',b.dataset.mapLayer===mode));
  const showPoints=mode!=='heat';['asset-halo','asset-points','asset-labels','selected-route-line'].forEach(id=>{if(satelliteMap.getLayer(id))satelliteMap.setLayoutProperty(id,'visibility',showPoints?'visible':'none')});$('#hotmap-legend').hidden=mode!=='heat';
- if(mode==='heat'){satelliteMap.setLayoutProperty('thermal-grid-fill','visibility','visible');satelliteMap.setLayoutProperty('thermal-grid-line','visibility','visible');satelliteMap.easeTo({center:[-75.510,10.315],zoom:14,pitch:0,bearing:0,duration:900})}
- if(mode==='routes'){satelliteMap.setLayoutProperty('thermal-routes-glow','visibility','visible');satelliteMap.setLayoutProperty('thermal-routes-line','visibility','visible');satelliteMap.easeTo({zoom:14.1,pitch:38,duration:900})}
- if(mode==='top')satelliteMap.easeTo({center:[-75.510,10.315],zoom:14.35,pitch:0,bearing:0,duration:1000});
- if(mode==='points')satelliteMap.easeTo({center:[-75.510,10.315],zoom:14.25,pitch:42,bearing:-18,duration:900});
- if(mode==='tour')startMapTour();
+ if(mode==='heat'){satelliteMap.setLayoutProperty('thermal-grid-fill','visibility','visible');satelliteMap.setLayoutProperty('thermal-grid-line','visibility','visible');satelliteMap.easeTo({center:[-75.510,10.315],zoom:14,pitch:0,bearing:0,duration:900});setMapStatus('connected','HOTMAP activo · temperatura estimada')}
+ if(mode==='routes'){satelliteMap.setLayoutProperty('thermal-routes-glow','visibility','visible');satelliteMap.setLayoutProperty('thermal-routes-line','visibility','visible');satelliteMap.easeTo({zoom:14.1,pitch:38,duration:900});setMapStatus('connected','Conexiones compatibles activas')}
+ if(mode==='top'){satelliteMap.easeTo({center:[-75.510,10.315],zoom:14.35,pitch:0,bearing:0,duration:1000});setMapStatus('connected','Vista cenital activa')}
+ if(mode==='points'){satelliteMap.easeTo({center:[-75.510,10.315],zoom:14.25,pitch:42,bearing:-18,duration:900});setMapStatus('connected','Puntos térmicos activos')}
+ if(mode==='tour'){setMapStatus('connected','Recorrido rotatorio activo');startMapTour()}
 }
 function startMapTour(){let i=0,bearing=satelliteMap.getBearing(),stops=[sources[0],sources[2],sources[3],sources[5],sources[6]];const visit=()=>{if(i>=stops.length){i=0;bearing+=90}const s=stops[i++];selectSource(s.id);$('#point-control').hidden=true;bearing+=72;satelliteMap.flyTo({center:demoCoordinate(s),zoom:15.6,pitch:48,bearing,duration:2200,essential:true});tourTimer=setTimeout(visit,2900)};visit()}
 function changeBasemap(style){if(!satelliteMap)return;const keep=activeMapLayer;satelliteMap.once('style.load',()=>{addMapboxDemoLayers();positionMapHotspots();selectMapDemoLayer(keep)});satelliteMap.setStyle(`mapbox://styles/mapbox/${style}`)}
